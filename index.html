@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Calqui - Math - Financiera</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-sRIl4kxILFvY47J16cr9ZwB07vP4J8+LH7qKQnuqkuIAvNWLzeN8tE5YBujZqJLB" crossorigin="anonymous">    <link href="styles.css">
+</head>
+<body class="bg-light p-4">
+
+    <div class="container bg-white p-4 shadow rounded">
+        <h1 class="text-center mb-4 text-primary fw-bold">Calqui - Math - Financiera</h1>
+                    <p class="text-center text-muted">Distintos tipos de calculos financieros.</p>
+
+        <div class="row g-2 mb-4">
+            <div class="col-md-3">
+                <button class="btn btn-outline-primary w-100 py-2" onclick="renderizarCalculadora('simple')">Interés Simple</button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-success w-100 py-2" onclick="renderizarCalculadora('monto')">Interés Simple (Monto)</button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-warning w-100 py-2 disabled" onclick="renderizarCalculadora('fechas')">Cálculo de Fechas</button>
+            </div>
+            <div class="col-md-3">
+                <button class="btn btn-outline-info w-100 py-2 disabled" onclick="renderizarCalculadora('tipos')">Tipos de Interés</button>
+            </div>
+              <div class="col-md-3">
+                <button class="btn btn-outline-success w-100 py-2 disabled" onclick="renderizarCalculadora('monto')">Descuento</button>
+            </div>
+             <div class="col-md-3">
+                <button class="btn btn-outline-info w-100 py-2 disabled" onclick="renderizarCalculadora('tipos')">Pagos Parciales</button>
+            </div>
+             <div class="col-md-3">
+                <button class="btn btn-outline-success w-100 py-2 disabled" onclick="renderizarCalculadora('monto')">Interes Compuesto</button>
+            </div>
+        </div>
+
+        <div id="contenedor-principal">
+            <p class="text-center text-muted">Seleccione una categoría para comenzar.</p>
+        </div>
+    </div>
+
+
+    <script src="main.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js" integrity="sha384-FKyoEForCGlyvwx9Hj09JcYn3nv7wiPVlz7YYwJrWVcXK/BmnVDxM+D2scQbITxI" crossorigin="anonymous"></script>
+</body>
+</html>
