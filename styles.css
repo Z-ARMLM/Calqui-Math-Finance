@@ -5,3 +5,27 @@
         { from 
           { opacity: 0; } to
            { opacity: 1; } }
+
+           /* Esto hace que el botón activo mantenga el color sólido */
+.btn-outline-primary.active, .btn-outline-primary:active {
+    background-color: #0d6efd !important;
+    color: #fff !important;
+}
+.btn-outline-success.active { 
+  background-color: #198754 !important; 
+  color: #fff !important; 
+}
+.btn-outline-warning.active { 
+  background-color: #ffc107 !important; 
+  color: #fff !important; 
+}
+.btn-outline-info.active { 
+  background-color: #0dcaf0 !important; 
+  color: #fff !important; 
+}
+
+/* Para los botones oscuros de las fórmulas */
+.btn-dark.active-formula {
+    background-color: #7daaed !important; /* Cambia a azul cuando se selecciona */
+    border-color: #0d6efd !important;
+}

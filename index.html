@@ -12,27 +12,27 @@
         <h1 class="text-center mb-4 text-primary fw-bold">Calqui - Math - Financiera</h1>
                     <p class="text-center text-muted">Distintos tipos de calculos financieros.</p>
 
-        <div class="row g-2 mb-4">
+        <div class="row g-2 mb-4" id="menu-principal-botones">
             <div class="col-md-3">
-                <button class="btn btn-outline-primary w-100 py-2" onclick="renderizarCalculadora('simple')">Interés Simple</button>
+                <button class="btn btn-outline-primary w-100 py-2" onclick="renderizarCalculadora('simple', this)">Interés Simple</button>
             </div>
             <div class="col-md-3">
-                <button class="btn btn-outline-success w-100 py-2" onclick="renderizarCalculadora('monto')">Interés Simple (Monto)</button>
+                <button class="btn btn-outline-success w-100 py-2" onclick="renderizarCalculadora('monto', this)">Interés Simple (Monto)</button>
             </div>
             <div class="col-md-3">
-                <button class="btn btn-outline-warning w-100 py-2 disabled" onclick="renderizarCalculadora('fechas')">Cálculo de Fechas</button>
+                <button class="btn btn-outline-warning w-100 py-2 " onclick="renderizarCalculadora('fechas', this)">Cálculo de Fechas</button>
             </div>
             <div class="col-md-3">
-                <button class="btn btn-outline-info w-100 py-2 disabled" onclick="renderizarCalculadora('tipos')">Tipos de Interés</button>
+                <button class="btn btn-outline-info w-100 py-2 " onclick="renderizarCalculadora('tipos', this)">Tipos de Interés</button>
             </div>
               <div class="col-md-3">
-                <button class="btn btn-outline-success w-100 py-2 disabled" onclick="renderizarCalculadora('monto')">Descuento</button>
+                <button class="btn btn-outline-success w-100 py-2 " onclick="renderizarCalculadora('descuento', this)">Descuento</button>
             </div>
              <div class="col-md-3">
-                <button class="btn btn-outline-info w-100 py-2 disabled" onclick="renderizarCalculadora('tipos')">Pagos Parciales</button>
+                <button class="btn btn-outline-info w-100 py-2 " onclick="renderizarCalculadora('pagosparciales', this)">Pagos Parciales</button>
             </div>
              <div class="col-md-3">
-                <button class="btn btn-outline-success w-100 py-2 disabled" onclick="renderizarCalculadora('monto')">Interes Compuesto</button>
+                <button class="btn btn-outline-success w-100 py-2 " onclick="renderizarCalculadora('compuesto',this)">Interes Compuesto</button>
             </div>
         </div>
 
