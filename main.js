@@ -95,7 +95,7 @@ const secciones = {
         titulo: "Pagos Parciales", 
         color: "border-secondary", 
         formulas: { 
-            "reglaComercial": { nombre: "Regla Comercial (Artística)", campos: [] }, 
+            "reglaComercial": { nombre: "Regla Comercial", campos: [] }, 
             "reglaAmericana": { nombre: "Regla Americana", campos: [] } 
         } 
     },
@@ -128,14 +128,14 @@ function renderizarCalculadora(tipo, botonElemento) {
     let htmlForm = "";
 
     if (tipo === 'fechas') {
-        htmlForm = `<div class="d-flex gap-2 mb-3" id="botones-fechas"><button class="btn btn-outline-warning w-50" onclick="generarInputsFecha('Comercial', this)">Tiempo Comercial</button><button class="btn btn-outline-warning w-50" onclick="generarInputsFecha('Exacto', this)">Tiempo Exacto</button></div><div id="sub-formulario"></div>`;
+        htmlForm = `<div class="d-flex gap-2 mb-3" id="botones-fechas"><button class="btn btn-outline-warning w-50" onclick="generarInputsFecha('Comercial', this)">Método Comercial</button><button class="btn btn-outline-warning w-50" onclick="generarInputsFecha('Exacto', this)">Tiempo Exacto</button></div><div id="sub-formulario"></div>`;
     } else {
         htmlForm = `<div class="row g-2 mb-3" id="botones-formulas">${Object.keys(info.formulas).map(f => `<div class="col-md-4"><button class="btn btn-sm btn-dark w-100" onclick="generarInputsFormula('${tipo}', '${f}', this)">${info.formulas[f].nombre}</button></div>`).join('')}</div><div id="sub-formulario"></div>`;
     }
     contenedor.innerHTML = `<div class="card p-4 border-2 ${info.color} fade-in shadow-sm"><h3 class="fw-bold mb-3 text-start">${info.titulo}</h3>${htmlForm}<div id="resultado" class="mt-3 fw-bold text-center text-primary h4"></div></div>`;
 }
 
-// --- GENERADOR DE FORMULARIOS ---
+// --- GENERADOR DE FORMULARIOS ÚNICO ---
 function generarInputsFormula(cat, formKey, botonElemento) {
     cacheFraccionario = { exacto: null, practico: null }; 
 
@@ -146,69 +146,222 @@ function generarInputsFormula(cat, formKey, botonElemento) {
     const contenedor = document.getElementById('sub-formulario');
     const formula = secciones[cat].formulas[formKey];
 
+    // ==========================================
+    // 0. TIPOS DE INTERÉS
+    // ==========================================
     if (cat === 'tipos') {
-        let isOrdinario = formKey === 'Io'; let btn1 = isOrdinario ? 'Iota' : 'Ieta'; let btn2 = isOrdinario ? 'Iote' : 'Iete'; let denom = isOrdinario ? 360 : 365; let t_nom = isOrdinario ? 'Interés Ordinario' : 'Interés Exacto';
-        contenedor.innerHTML = `<div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in text-start border-info border-top-0 border-end-0 border-bottom-0 border-5"><h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Modo: ${t_nom} (Denominador: ${denom})</h5><div class="row g-3 mb-4"><div class="col-md-6"><label class="fw-bold small text-dark">CAPITAL (P)</label><input type="number" id="val-P" class="form-control border-dark border-2" placeholder="Monto"></div><div class="col-md-6"><label class="fw-bold small text-dark">TASA DE INTERÉS (%)</label><div class="input-group"><input type="number" id="val-i" class="form-control border-dark border-2" placeholder="%" oninput="actualizarDecimal('i')"><span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span><input type="text" id="res-decimal-i" class="form-control bg-light border-dark border-2" readonly placeholder="0.00"></div></div></div><div class="mb-4 p-3 bg-light border border-info rounded text-start shadow-sm"><label class="fw-bold text-info mb-3 d-block border-bottom border-info pb-2"><i class="bi bi-calendar-range"></i> TIEMPO (Rango de Fechas)</label><div class="row g-3"><div class="col-md-6"><label class="small text-muted fw-bold">Fecha Inicial</label><input type="date" id="fecha-ini-tipos" class="form-control border-dark border-2"></div><div class="col-md-6"><label class="small text-muted fw-bold">Fecha Final</label><input type="date" id="fecha-fin-tipos" class="form-control border-dark border-2"></div></div><small class="text-muted d-block mt-3">* El sistema calculará automáticamente los días aproximados y exactos a partir de estas fechas.</small></div><div class="row g-2"><div class="col-md-6"><button class="btn btn-warning w-100 py-3 fw-bold fs-6 text-dark shadow-sm" onclick="procesarTiposInteres('${btn1}', ${denom})">Calcular mediante ${btn1}</button></div><div class="col-md-6"><button class="btn btn-info w-100 py-3 fw-bold fs-6 text-white shadow-sm" onclick="procesarTiposInteres('${btn2}', ${denom})">Calcular mediante ${btn2}</button></div></div></div>`;
+        let isOrdinario = formKey === 'Io';
+        let btn1 = isOrdinario ? 'Iota' : 'Ieta';
+        let btn2 = isOrdinario ? 'Iote' : 'Iete';
+        let denom = isOrdinario ? 360 : 365;
+        let t_nom = isOrdinario ? 'Interés Ordinario' : 'Interés Exacto';
+
+        let htmlTipos = `
+            <div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in text-start border-info border-top-0 border-end-0 border-bottom-0 border-5">
+                <h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Modo: ${t_nom} (Denominador: ${denom})</h5>
+                <div class="row g-3 mb-4"><div class="col-md-6"><label class="fw-bold small text-dark">CAPITAL (P)</label><input type="number" id="val-P" class="form-control border-dark border-2" placeholder="Monto"></div><div class="col-md-6"><label class="fw-bold small text-dark">TASA DE INTERÉS (%)</label><div class="input-group"><input type="number" id="val-i" class="form-control border-dark border-2" placeholder="%" oninput="actualizarDecimal('i')"><span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span><input type="text" id="res-decimal-i" class="form-control bg-light border-dark border-2" readonly placeholder="0.00"></div></div></div>
+                <div class="mb-4 p-3 bg-light border border-info rounded text-start shadow-sm"><label class="fw-bold text-info mb-3 d-block border-bottom border-info pb-2"><i class="bi bi-calendar-range"></i> TIEMPO (Rango de Fechas)</label><div class="row g-3"><div class="col-md-6"><label class="small text-muted fw-bold">Fecha Inicial</label><input type="date" id="fecha-ini-tipos" class="form-control border-dark border-2"></div><div class="col-md-6"><label class="small text-muted fw-bold">Fecha Final</label><input type="date" id="fecha-fin-tipos" class="form-control border-dark border-2"></div></div><small class="text-muted d-block mt-3">* El sistema calculará automáticamente los días aproximados y exactos a partir de estas fechas.</small></div>
+                <div class="row g-2"><div class="col-md-6"><button class="btn btn-warning w-100 py-3 fw-bold fs-6 text-dark shadow-sm" onclick="procesarTiposInteres('${btn1}', ${denom})">Calcular mediante ${btn1}</button></div><div class="col-md-6"><button class="btn btn-info w-100 py-3 fw-bold fs-6 text-white shadow-sm" onclick="procesarTiposInteres('${btn2}', ${denom})">Calcular mediante ${btn2}</button></div></div>
+            </div>`;
+        contenedor.innerHTML = htmlTipos;
         return;
     }
 
+    // ==========================================
+    // 1. PAGOS PARCIALES
+    // ==========================================
     if (formKey === 'reglaComercial' || formKey === 'reglaAmericana') {
         const titulo = formKey === 'reglaComercial' ? 'Ecuación de Valor (Regla Comercial)' : 'Pagos Parciales (Regla Americana)';
         const btnAccion = formKey === 'reglaComercial' ? 'procesarReglaComercial()' : 'procesarReglaAmericana()';
-        contenedor.innerHTML = `<div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in"><h5 class="text-secondary border-bottom pb-2 mb-4 text-start fw-bold">${titulo}</h5><div class="mb-3 text-start border-bottom pb-3"><label class="form-label small fw-bold text-primary"><i class="bi bi-clock-history"></i> Configuración General</label><div class="row g-2"><div class="col-6"><label class="small text-muted">Unidad Global</label><select id="unidad-pagos" class="form-select form-select-sm"><option value="anios">Años</option><option value="meses">Meses</option><option value="dias">Días (Base 360)</option></select></div><div class="col-6"><label class="small text-muted">Tasa Interés (%)</label><input type="number" id="i-pagos" class="form-control form-control-sm" placeholder="Ej: 5"></div>${formKey === 'reglaComercial' ? `<div class="col-12 mt-2"><label class="small text-muted">Fecha Focal (t)</label><input type="number" id="t-focal" class="form-control form-control-sm" placeholder="Ej: 12"></div>` : ''}</div></div><div class="mb-3 text-start border-bottom pb-3"><label class="form-label small fw-bold text-danger">Deuda Principal (El Préstamo)</label><div class="row g-2"><div class="col-6"><label class="small text-muted">Monto Original ($)</label><input type="number" id="monto-deuda" class="form-control form-control-sm" placeholder="Ej: 10000"></div><div class="col-6"><label class="small text-muted">Ubicación (Tiempo)</label><input type="number" id="t-deuda" class="form-control form-control-sm" placeholder="Ej: 0" ${formKey === 'reglaAmericana' ? 'value="0"' : ''}></div></div></div><div class="mb-3 text-start border-bottom pb-3 bg-light p-2 rounded border"><label class="form-label small fw-bold text-success">Incógnita: Pago Final (X)</label><div class="row g-2"><div class="col-12"><label class="small text-muted">¿En qué tiempo se liquida?</label><input type="number" id="t-x" class="form-control form-control-sm border-success"></div></div></div><div class="mb-3 text-start"><label class="form-label small fw-bold text-info">Pagos Parciales Acordados</label><select id="cantidad-pagos" class="form-select form-select-sm mb-3 border-info" onchange="generarCamposPagos()"><option value="0">0 Pagos</option><option value="1">1 Pago</option><option value="2">2 Pagos</option><option value="3">3 Pagos</option><option value="4">4 Pagos</option></select><div id="contenedor-pagos-dinamicos"></div></div><button class="btn btn-dark w-100 mt-2 fw-bold shadow-sm" onclick="${btnAccion}">CALCULAR LIQUIDACIÓN</button></div>`;
+        
+        let htmlPagos = `
+            <div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in">
+                <h5 class="text-secondary border-bottom pb-2 mb-4 text-start fw-bold">${titulo}</h5>
+                <div class="mb-3 text-start border-bottom pb-3"><label class="form-label small fw-bold text-primary"><i class="bi bi-clock-history"></i> Configuración General</label><div class="row g-2"><div class="col-6"><label class="small text-muted">Unidad Global</label><select id="unidad-pagos" class="form-select form-select-sm"><option value="anios">Años</option><option value="meses">Meses</option><option value="dias">Días (Base 360)</option></select></div><div class="col-6"><label class="small text-muted">Tasa Interés (%)</label><input type="number" id="i-pagos" class="form-control form-control-sm" placeholder="Ej: 5"></div>${formKey === 'reglaComercial' ? `<div class="col-12 mt-2"><label class="small text-muted">Fecha Focal (t)</label><input type="number" id="t-focal" class="form-control form-control-sm" placeholder="Ej: 12"></div>` : ''}</div></div>
+                <div class="mb-3 text-start border-bottom pb-3"><label class="form-label small fw-bold text-danger">Deuda Principal (El Préstamo)</label><div class="row g-2"><div class="col-6"><label class="small text-muted">Monto Original ($)</label><input type="number" id="monto-deuda" class="form-control form-control-sm" placeholder="Ej: 10000"></div><div class="col-6"><label class="small text-muted">Ubicación (Tiempo)</label><input type="number" id="t-deuda" class="form-control form-control-sm" placeholder="Ej: 0" ${formKey === 'reglaAmericana' ? 'value="0"' : ''}></div></div></div>
+                <div class="mb-3 text-start border-bottom pb-3 bg-light p-2 rounded border"><label class="form-label small fw-bold text-success">Incógnita: Pago Final (X)</label><div class="row g-2"><div class="col-12"><label class="small text-muted">¿En qué tiempo se liquida?</label><input type="number" id="t-x" class="form-control form-control-sm border-success"></div></div></div>
+                <div class="mb-3 text-start"><label class="form-label small fw-bold text-info">Pagos Parciales Acordados</label><select id="cantidad-pagos" class="form-select form-select-sm mb-3 border-info" onchange="generarCamposPagos()"><option value="0">0 Pagos</option><option value="1">1 Pago</option><option value="2">2 Pagos</option><option value="3">3 Pagos</option><option value="4">4 Pagos</option></select><div id="contenedor-pagos-dinamicos"></div></div>
+                <button class="btn btn-dark w-100 mt-2 fw-bold shadow-sm" onclick="${btnAccion}">CALCULAR LIQUIDACIÓN</button>
+            </div>`;
+        contenedor.innerHTML = htmlPagos;
         return;
     }
 
+    // ==========================================
+    // 2. INTERÉS COMPUESTO 
+    // ==========================================
     if (cat === 'compuesto') {
-        const c = formula.campos; let isFraccionario = (formKey === 'S_frac' || formKey === 'P_frac');
+        const c = formula.campos;
+        let isFraccionario = (formKey === 'S_frac' || formKey === 'P_frac');
+        
         let html = `<div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in text-start border-dark border-top-0 border-end-0 border-bottom-0 border-5">`;
         
         if (isFraccionario) {
-            let fEx = formKey === 'S_frac' ? 'S = P(1+i)^n' : 'P = S(1+i)^-n'; let fPr = formKey === 'S_frac' ? 'S = P(1+i)^n * (1+it)' : 'P = S(1+i)^-n * (1+it)';
-            html += `<h5 class="text-dark border-bottom pb-2 mb-3 fw-bold" id="titulo-formula">Fórmula: ${fEx}</h5><div class="mb-4 pb-3 border-bottom border-secondary"><label class="fw-bold small text-dark d-block mb-2">SELECCIONE EL MÉTODO A UTILIZAR</label><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="metodoFrac" id="mf-exacto" value="exacto" checked onchange="toggleMetodoFraccionario('${fEx}', '${fPr}')"><label class="form-check-label fw-bold text-success">Método Exacto</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="metodoFrac" id="mf-practico" value="practico" onchange="toggleMetodoFraccionario('${fEx}', '${fPr}')"><label class="form-check-label fw-bold text-info">Método Práctico</label></div></div>`;
-        } else { html += `<h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Fórmula: ${formula.nombre}</h5>`; }
+            let fEx = formKey === 'S_frac' ? 'S = P(1+i)^n' : 'P = S(1+i)^-n';
+            let fPr = formKey === 'S_frac' ? 'S = P(1+i)^n * (1+it)' : 'P = S(1+i)^-n * (1+it)';
+            html += `
+            <h5 class="text-dark border-bottom pb-2 mb-3 fw-bold" id="titulo-formula">Fórmula: ${fEx}</h5>
+            <div class="mb-4 pb-3 border-bottom border-secondary">
+                <label class="fw-bold small text-dark d-block mb-2">SELECCIONE EL MÉTODO A UTILIZAR</label>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input border-dark" type="radio" name="metodoFrac" id="mf-exacto" value="exacto" checked onchange="toggleMetodoFraccionario('${fEx}', '${fPr}')">
+                    <label class="form-check-label fw-bold text-success" for="mf-exacto" style="cursor:pointer;">Método Exacto</label>
+                </div>
+                <div class="form-check form-check-inline">
+                    <input class="form-check-input border-dark" type="radio" name="metodoFrac" id="mf-practico" value="practico" onchange="toggleMetodoFraccionario('${fEx}', '${fPr}')">
+                    <label class="form-check-label fw-bold text-info" for="mf-practico" style="cursor:pointer;">Método Práctico</label>
+                </div>
+            </div>`;
+        } else {
+            html += `<h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Fórmula: ${formula.nombre}</h5>`;
+        }
 
-        html += `<div class="mb-3"><label class="fw-bold small text-dark">FRECUENCIA DE CONVERSIÓN (m)</label><select id="val-m" class="form-select border-dark border-2" onchange="actualizarCompuestoEnVivo()"><option value="1">Anual (1)</option><option value="2">Semestral (2)</option><option value="3">Cuatrimestral (3)</option><option value="4">Trimestral (4)</option><option value="6">Bimestral (6)</option><option value="12">Mensual (12)</option></select></div>`;
-        if (c.includes('m_prima')) html += `<div class="mb-3"><label class="fw-bold small text-dark">FRECUENCIA CONOCIDA (m')</label><select id="val-m_prima" class="form-select border-dark border-2"><option value="1">Anual</option><option value="2">Semestral</option><option value="4">Trimestral</option><option value="12">Mensual</option></select></div>`;
+        html += `
+            <div class="mb-3">
+                <label class="fw-bold small text-dark">FRECUENCIA DE CONVERSIÓN (m)</label>
+                <select id="val-m" class="form-select border-dark border-2" onchange="actualizarCompuestoEnVivo()">
+                    <option value="1">Anual (1)</option><option value="2">Semestral (2)</option><option value="3">Cuatrimestral (3)</option>
+                    <option value="4">Trimestral (4)</option><option value="6">Bimestral (6)</option><option value="12">Mensual (12)</option>
+                </select>
+            </div>`;
+
+        if (c.includes('m_prima')) {
+            html += `<div class="mb-3"><label class="fw-bold small text-dark">FRECUENCIA CONOCIDA (m')</label><select id="val-m_prima" class="form-select border-dark border-2"><option value="1">Anual</option><option value="2">Semestral</option><option value="4">Trimestral</option><option value="12">Mensual</option></select></div>`;
+        }
+
         if (c.includes('P')) html += `<div class="mb-3"><label class="fw-bold small text-dark">CAPITAL (P)</label><input type="number" id="val-P" class="form-control border-dark border-2"></div>`;
         if (c.includes('S')) html += `<div class="mb-3"><label class="fw-bold small text-dark">MONTO (S)</label><input type="number" id="val-S" class="form-control border-dark border-2"></div>`;
+
         if (c.includes('j') || c.includes('j_prima')) {
             let labelJ = c.includes('j_prima') ? "TASA NOMINAL CONOCIDA (j')" : "TASA NOMINAL (j)";
-            html += `<div class="mb-3"><label class="fw-bold small text-dark">${labelJ}</label><div class="input-group"><input type="number" id="val-j" class="form-control border-dark border-2" placeholder="Porcentaje (%)" oninput="actualizarCompuestoEnVivo()"><span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span><input type="text" id="dec-j" class="form-control bg-light border-dark border-2" readonly placeholder="0.00"></div></div>`;
+            html += `
+                <div class="mb-3">
+                    <label class="fw-bold small text-dark">${labelJ}</label>
+                    <div class="input-group">
+                        <input type="number" id="val-j" class="form-control border-dark border-2" placeholder="Porcentaje (%)" oninput="actualizarCompuestoEnVivo()">
+                        <span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span>
+                        <input type="text" id="dec-j" class="form-control bg-light border-dark border-2" readonly placeholder="0.00">
+                    </div>
+                </div>`;
         } else if (c.includes('i')) { 
-            html += `<div class="mb-3"><label class="fw-bold small text-dark">TASA EFECTIVA (i)</label><div class="input-group"><input type="number" id="val-i-manual" class="form-control border-dark border-2" placeholder="Porcentaje (%)" oninput="document.getElementById('dec-i-manual').value = (this.value/100).toFixed(4)"><span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span><input type="text" id="dec-i-manual" class="form-control bg-light border-dark border-2" readonly placeholder="0.00"></div></div>`;
+            html += `
+                <div class="mb-3">
+                    <label class="fw-bold small text-dark">TASA EFECTIVA (i)</label>
+                    <div class="input-group">
+                        <input type="number" id="val-i-manual" class="form-control border-dark border-2" placeholder="Porcentaje (%)" oninput="document.getElementById('dec-i-manual').value = (this.value/100).toFixed(4)">
+                        <span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span>
+                        <input type="text" id="dec-i-manual" class="form-control bg-light border-dark border-2" readonly placeholder="0.00">
+                    </div>
+                </div>`;
         }
+
         if (c.includes('t')) {
-            html += `<div class="mb-3 p-3 bg-light border border-dark border-2 rounded"><label class="fw-bold small text-dark mb-2">TIEMPO</label><div class="mb-3 pb-2 border-bottom border-secondary"><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-fechas" value="fechas" checked onchange="toggleModoTiempoComp()"><label class="form-check-label fw-bold text-danger">Entre fechas</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-anios" value="anios" onchange="toggleModoTiempoComp()"><label class="form-check-label fw-bold text-warning">Años</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-am" value="am" onchange="toggleModoTiempoComp()"><label class="form-check-label fw-bold text-success">Años y meses</label></div></div><div id="ct-fechas" class="row g-2 mb-2"><div class="col-6"><label class="small text-muted fw-bold">Fecha Inicial</label><input type="date" id="t-f1" class="form-control border-dark border-2" onchange="actualizarCompuestoEnVivo()"></div><div class="col-6"><label class="small text-muted fw-bold">Fecha Final</label><input type="date" id="t-f2" class="form-control border-dark border-2" onchange="actualizarCompuestoEnVivo()"></div></div><div id="ct-anios" class="row g-2 mb-2 d-none"><div class="col-12"><label class="small text-muted fw-bold">Años</label><input type="number" id="t-a1" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div></div><div id="ct-am" class="row g-2 mb-2 d-none"><div class="col-6"><label class="small text-muted fw-bold">Años</label><input type="number" id="t-a2" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div><div class="col-6"><label class="small text-muted fw-bold">Meses</label><input type="number" id="t-m2" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div></div></div>`;
+            html += `
+            <div class="mb-3 p-3 bg-light border border-dark border-2 rounded">
+                <label class="fw-bold small text-dark mb-2">TIEMPO</label>
+                <div class="mb-3 pb-2 border-bottom border-secondary">
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-fechas" value="fechas" checked onchange="toggleModoTiempoComp()">
+                        <label class="form-check-label fw-bold text-danger" for="rt-fechas" style="cursor:pointer;">Entre fechas</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-anios" value="anios" onchange="toggleModoTiempoComp()">
+                        <label class="form-check-label fw-bold text-warning" for="rt-anios" style="cursor:pointer;">Años</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <input class="form-check-input border-dark" type="radio" name="modoTiempo" id="rt-am" value="am" onchange="toggleModoTiempoComp()">
+                        <label class="form-check-label fw-bold text-success" for="rt-am" style="cursor:pointer;">Años y meses</label>
+                    </div>
+                </div>
+
+                <div id="ct-fechas" class="row g-2 mb-2">
+                    <div class="col-6"><label class="small text-muted fw-bold">Fecha Inicial</label><input type="date" id="t-f1" class="form-control border-dark border-2" onchange="actualizarCompuestoEnVivo()"></div>
+                    <div class="col-6"><label class="small text-muted fw-bold">Fecha Final</label><input type="date" id="t-f2" class="form-control border-dark border-2" onchange="actualizarCompuestoEnVivo()"></div>
+                </div>
+                <div id="ct-anios" class="row g-2 mb-2 d-none">
+                    <div class="col-12"><label class="small text-muted fw-bold">Años</label><input type="number" id="t-a1" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div>
+                </div>
+                <div id="ct-am" class="row g-2 mb-2 d-none">
+                    <div class="col-6"><label class="small text-muted fw-bold">Años</label><input type="number" id="t-a2" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div>
+                    <div class="col-6"><label class="small text-muted fw-bold">Meses</label><input type="number" id="t-m2" class="form-control border-dark border-2" oninput="actualizarCompuestoEnVivo()"></div>
+                </div>
+            </div>`;
         }
+
         if (c.includes('t') || c.includes('n')) {
-            let readonlyState = c.includes('t') ? 'readonly' : ''; let hint = c.includes('t') ? 'Se calculará automáticamente' : 'Ingrese los periodos';
-            html += `<div class="mb-3"><label class="fw-bold small text-dark">NÚMERO DE PERIODOS (n)</label><input type="text" id="val-n" class="form-control border-dark border-2 fw-bold text-primary bg-white" placeholder="${hint}" ${readonlyState}></div>`;
+            let readonlyState = c.includes('t') ? 'readonly' : ''; 
+            let hint = c.includes('t') ? 'Se calculará automáticamente' : 'Ingrese los periodos';
+            html += `
+                <div class="mb-3">
+                    <label class="fw-bold small text-dark">NÚMERO DE PERIODOS (n)</label>
+                    <input type="text" id="val-n" class="form-control border-dark border-2 fw-bold text-primary bg-white" placeholder="${hint}" ${readonlyState}>
+                </div>`;
         }
+
         if (c.includes('j') || c.includes('j_prima')) {
-            html += `<div class="mb-3"><label class="fw-bold small text-dark">TASA i (i = J / M)</label><div class="input-group"><input type="text" id="calc-i" class="form-control border-dark border-2 fw-bold text-success bg-white" placeholder="Porcentaje" readonly><span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span><input type="text" id="dec-i" class="form-control bg-light border-dark border-2 fw-bold text-success" readonly placeholder="0.00"></div></div>`;
+            html += `
+                <div class="mb-3">
+                    <label class="fw-bold small text-dark">TASA i (i = J / M)</label>
+                    <div class="input-group">
+                        <input type="text" id="calc-i" class="form-control border-dark border-2 fw-bold text-success bg-white" placeholder="Porcentaje" readonly>
+                        <span class="input-group-text bg-light text-dark fw-bold border-dark border-2">Dec:</span>
+                        <input type="text" id="dec-i" class="form-control bg-light border-dark border-2 fw-bold text-success" readonly placeholder="0.00">
+                    </div>
+                </div>`;
         }
+
         if (isFraccionario) {
-            html += `<div id="seccion-metodo-practico" class="d-none mt-4 p-3 bg-light border border-info border-2 rounded"><h6 class="text-info fw-bold border-bottom border-info pb-2 mb-3"><i class="bi bi-plus-slash-minus"></i> SECCIÓN INTERÉS SIMPLE</h6><div class="row g-2"><div class="col-4"><label class="small fw-bold text-dark">Tasa (i) heredada</label><input type="text" id="comp-frac-i" class="form-control border-info bg-white" readonly></div><div class="col-4"><label class="small fw-bold text-dark">Meses Restantes</label><input type="number" id="comp-frac-meses" class="form-control border-info fw-bold bg-white" readonly></div><div class="col-4"><label class="small fw-bold text-dark">Meses del Periodo</label><input type="number" id="comp-frac-base" class="form-control border-info bg-white" readonly></div></div></div>`;
+            html += `
+            <div id="seccion-metodo-practico" class="d-none mt-4 p-3 bg-light border border-info border-2 rounded">
+                <h6 class="text-info fw-bold border-bottom border-info pb-2 mb-3"><i class="bi bi-plus-slash-minus"></i> SECCIÓN INTERÉS SIMPLE</h6>
+                <div class="row g-2">
+                    <div class="col-4"><label class="small fw-bold text-dark">Tasa (i) heredada</label><input type="text" id="comp-frac-i" class="form-control border-info bg-white" readonly></div>
+                    <div class="col-4"><label class="small fw-bold text-dark">Meses Restantes</label><input type="number" id="comp-frac-meses" class="form-control border-info fw-bold bg-white" readonly></div>
+                    <div class="col-4"><label class="small fw-bold text-dark">Meses del Periodo</label><input type="number" id="comp-frac-base" class="form-control border-info bg-white" readonly></div>
+                </div>
+            </div>`;
         }
+
         html += `<button class="btn btn-dark w-100 mt-4 py-2 fw-bold fs-5" onclick="procesarCalculoCompuesto('${formKey}')">REALIZAR CÁLCULO</button></div>`;
         contenedor.innerHTML = html;
         return;
     }
 
+    // ==========================================
+    // 3. FLUJO ESTÁNDAR (Simple, Descuento, etc)
+    // ==========================================
     let htmlInputs = formula.campos.map(c => {
         if (c === 'i' || c === 'is' || c === 'd' || c === 'desct') {
             let rateDropdown = (c === 'i' || c === 'is') ? `<select id="unidad-tasa-${c}" class="form-select border-dark bg-white" style="max-width: 140px;" onchange="actualizarDecimal('${c}')"><option value="1" selected>Anual</option><option value="2">Semestral</option><option value="3">Cuatrimestral</option><option value="4">Trimestral</option><option value="6">Bimestral</option><option value="12">Mensual</option></select>` : '';
             return `<div class="mb-3 text-start"><label class="form-label small fw-bold">Porcentaje / Tasa (%)</label><div class="input-group"><input type="number" id="val-${c}" class="form-control border-dark" placeholder="Ej: 18" oninput="actualizarDecimal('${c}')">${rateDropdown}<span class="input-group-text bg-light border-dark fw-bold">Dec:</span><input type="text" id="res-decimal-${c}" class="form-control bg-light border-dark text-success fw-bold" readonly placeholder="0.00"></div></div>`;
         }
+        
         if (c === 't' || c === 'ts') {
             const permiteFechas = ['descuento'].includes(cat);
             let htmlOpciones = ''; let htmlFechas = '';
             if (permiteFechas) {
-                htmlOpciones = `<div class="mb-3 border-bottom pb-2"><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="mt-${c}" id="rt-aprox-${c}" value="aprox" checked onchange="toggleModoTiempo('${c}')"><label class="small fw-bold">Tiempo Aproximado</label></div><div class="form-check form-check-inline"><input class="form-check-input" type="radio" name="mt-${c}" id="rt-exacto-${c}" value="exacto" onchange="toggleModoTiempo('${c}')"><label class="small fw-bold">Tiempo Exacto</label></div></div>`;
+                htmlOpciones = `
+                <div class="mb-3 border-bottom pb-2">
+                    <div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="mt-${c}" id="rt-aprox-${c}" value="aprox" checked onchange="toggleModoTiempo('${c}')"><label class="small fw-bold" for="rt-aprox-${c}" style="cursor:pointer;">Tiempo Aproximado</label></div>
+                    <div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="mt-${c}" id="rt-exacto-${c}" value="exacto" onchange="toggleModoTiempo('${c}')"><label class="small fw-bold" for="rt-exacto-${c}" style="cursor:pointer;">Tiempo Exacto</label></div>
+                </div>`;
                 htmlFechas = `<div id="cont-exacto-${c}" class="d-none bg-light p-3 border border-warning rounded mb-2"><div class="row g-2"><div class="col-6"><label class="small text-muted fw-bold">D/M/A Inicial</label><div class="input-group input-group-sm"><input type="number" id="dia-ini-${c}" class="form-control" placeholder="DD" oninput="actualizarTiempoFechas('${c}')"><select id="mes-ini-${c}" class="form-select" onchange="actualizarTiempoFechas('${c}')"><option value="ene">Ene</option><option value="feb">Feb</option><option value="mar">Mar</option><option value="abr">Abr</option><option value="may">May</option><option value="jun">Jun</option><option value="jul">Jul</option><option value="ago">Ago</option><option value="sep">Sep</option><option value="oct">Oct</option><option value="nov">Nov</option><option value="dic">Dic</option></select><input type="number" id="anio-ini-${c}" class="form-control" placeholder="YYYY" oninput="actualizarTiempoFechas('${c}')"></div></div><div class="col-6"><label class="small text-muted fw-bold">D/M/A Final</label><div class="input-group input-group-sm"><input type="number" id="dia-fin-${c}" class="form-control" placeholder="DD" oninput="actualizarTiempoFechas('${c}')"><select id="mes-fin-${c}" class="form-select" onchange="actualizarTiempoFechas('${c}')"><option value="ene">Ene</option><option value="feb">Feb</option><option value="mar">Mar</option><option value="abr">Abr</option><option value="may">May</option><option value="jun">Jun</option><option value="jul">Jul</option><option value="ago">Ago</option><option value="sep">Sep</option><option value="oct">Oct</option><option value="nov">Nov</option><option value="dic">Dic</option></select><input type="number" id="anio-fin-${c}" class="form-control" placeholder="YYYY" oninput="actualizarTiempoFechas('${c}')"></div></div></div></div>`;
             }
-            return `<div class="mb-3 text-start"><label class="form-label small fw-bold">Tiempo (t en años)</label>${htmlOpciones}<div id="cont-aprox-${c}"><div class="input-group mb-1"><input type="number" id="val-${c}" class="form-control border-dark" placeholder="Cantidad" oninput="actualizarTiempo('${c}')"><input type="number" id="val-${c}-meses" class="form-control border-dark" placeholder="Meses" oninput="actualizarTiempo('${c}')"><select id="unidad-${c}" class="form-select border-dark" onchange="alternarBaseDias('${c}'); actualizarTiempo('${c}');"><option value="anios_meses">Años y Meses</option><option value="semestres">Semestres (÷2)</option><option value="cuatrimestres">Cuatrimestres (÷3)</option><option value="trimestres">Trimestres (÷4)</option><option value="bimestres">Bimestres (÷6)</option><option value="meses">Meses (÷12)</option><option value="dias">Solo Días</option></select></div><div id="base-dias-container-${c}" class="mt-2 d-none"><label class="small text-muted fw-bold">Base:</label><select id="base-${c}" class="form-select form-select-sm" onchange="actualizarTiempo('${c}')"><option value="360">Comercial (360)</option><option value="365">Exacto (365)</option></select></div></div>${htmlFechas}<div class="input-group mt-2"><span class="input-group-text bg-warning-subtle text-dark fw-bold">Tiempo (t):</span><input type="text" id="res-tiempo-${c}" class="form-control bg-light fw-bold text-dark" readonly></div></div>`;
+            return `
+                <div class="mb-3 text-start">
+                    <label class="form-label small fw-bold">Tiempo (t en años)</label>
+                    ${htmlOpciones}
+                    <div id="cont-aprox-${c}">
+                        <div class="input-group mb-1">
+                            <input type="number" id="val-${c}" class="form-control border-dark" placeholder="Cantidad" oninput="actualizarTiempo('${c}')">
+                            <input type="number" id="val-${c}-meses" class="form-control border-dark" placeholder="Meses" oninput="actualizarTiempo('${c}')">
+                            <select id="unidad-${c}" class="form-select border-dark" onchange="alternarBaseDias('${c}'); actualizarTiempo('${c}');"><option value="anios_meses">Años y Meses</option><option value="semestres">Semestres (÷2)</option><option value="cuatrimestres">Cuatrimestres (÷3)</option><option value="trimestres">Trimestres (÷4)</option><option value="bimestres">Bimestres (÷6)</option><option value="meses">Meses (÷12)</option><option value="dias">Solo Días</option></select>
+                        </div>
+                        <div id="base-dias-container-${c}" class="mt-2 d-none"><label class="small text-muted fw-bold">Base:</label><select id="base-${c}" class="form-select form-select-sm" onchange="actualizarTiempo('${c}')"><option value="360">Comercial (360)</option><option value="365">Exacto (365)</option></select></div>
+                    </div>
+                    ${htmlFechas}
+                    <div class="input-group mt-2"><span class="input-group-text bg-warning-subtle text-dark fw-bold">Tiempo (t):</span><input type="text" id="res-tiempo-${c}" class="form-control bg-light fw-bold text-dark" readonly></div>
+                </div>`;
         }
         const eti = { 'P': 'Capital Inicial (P)', 'S': 'Monto (S)', 'D': 'Descuento (D)' };
         return `<div class="mb-3 text-start"><label class="form-label small fw-bold">${eti[c] || c}</label><input type="number" id="val-${c}" class="form-control border-dark"></div>`;
@@ -228,13 +381,12 @@ function generarInputsFecha(tipo, botonElemento) {
     const contenedor = document.getElementById('sub-formulario');
     document.getElementById('resultado').innerHTML = ""; 
 
-    let html = `<div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in text-start border-warning border-top-0 border-end-0 border-bottom-0 border-5">
-                    <h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Modo: Tiempo ${tipo}</h5>`;
+    let html = `<div class="bg-white p-4 rounded shadow-sm border mt-2 fade-in text-start border-warning border-top-0 border-end-0 border-bottom-0 border-5"><h5 class="text-dark border-bottom pb-2 mb-4 fw-bold">Modo: Tiempo ${tipo}</h5>`;
 
     if (tipo === 'Comercial') {
         html += `<div class="row g-3 mb-3"><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Inicial</label><input type="date" id="fecha-ini-com" class="form-control border-dark border-2"></div><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Final</label><input type="date" id="fecha-fin-com" class="form-control border-dark border-2"></div></div><button class="btn btn-dark w-100 mt-2 py-2 fw-bold fs-5" onclick="procesarFechasComercial()">CALCULAR DÍAS (COMERCIAL)</button>`;
     } else if (tipo === 'Exacto') {
-        html += `<div class="mb-3 pb-3 border-bottom border-secondary"><label class="fw-bold small text-dark d-block mb-2">TIPO DE RANGO (Opcional, autodetectado)</label><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-mismo" value="mismo" checked><label class="form-check-label fw-bold small">Mismo Año</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-cons" value="consecutivos"><label class="form-check-label fw-bold small">Años Consecutivos</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-rango" value="rango"><label class="form-check-label fw-bold small">Rango de Fechas (>2 años)</label></div></div><div class="row g-3 mb-3"><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Inicial</label><input type="date" id="fecha-ini-ex" class="form-control border-dark border-2"></div><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Final</label><input type="date" id="fecha-fin-ex" class="form-control border-dark border-2"></div></div><button class="btn btn-dark w-100 mt-2 py-2 fw-bold fs-5" onclick="procesarFechasExacto()">CALCULAR DÍAS (EXACTO)</button>`;
+        html += `<div class="mb-3 pb-3 border-bottom border-secondary"><label class="fw-bold small text-dark d-block mb-2">TIPO DE RANGO (Opcional, autodetectado)</label><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-mismo" value="mismo" checked><label class="form-check-label fw-bold small" for="me-mismo" style="cursor:pointer;">Mismo Año</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-cons" value="consecutivos"><label class="form-check-label fw-bold small" for="me-cons" style="cursor:pointer;">Años Consecutivos</label></div><div class="form-check form-check-inline"><input class="form-check-input border-dark" type="radio" name="modoExacto" id="me-rango" value="rango"><label class="form-check-label fw-bold small" for="me-rango" style="cursor:pointer;">Rango de Fechas (>2 años)</label></div></div><div class="row g-3 mb-3"><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Inicial</label><input type="date" id="fecha-ini-ex" class="form-control border-dark border-2"></div><div class="col-md-6"><label class="fw-bold small text-dark">Fecha Final</label><input type="date" id="fecha-fin-ex" class="form-control border-dark border-2"></div></div><button class="btn btn-dark w-100 mt-2 py-2 fw-bold fs-5" onclick="procesarFechasExacto()">CALCULAR DÍAS (EXACTO)</button>`;
     }
     html += `</div>`;
     contenedor.innerHTML = html;
@@ -243,39 +395,25 @@ function generarInputsFecha(tipo, botonElemento) {
 function procesarFechasComercial() {
     const f1 = document.getElementById('fecha-ini-com').value; const f2 = document.getElementById('fecha-fin-com').value; const res = document.getElementById('resultado');
     if (!f1 || !f2) { res.innerHTML = `<div class="alert alert-danger mt-3">Ingrese ambas fechas.</div>`; return; }
-
     const [yI, mI, dI] = f1.split('-').map(Number); const [yF, mF, dF] = f2.split('-').map(Number);
     let c_dF = dF, c_mF = mF, c_yF = yF; let prestaDia = false, prestaMes = false;
-
     if (c_dF < dI) { c_dF += 30; c_mF -= 1; prestaDia = true; }
     if (c_mF < mI) { c_mF += 12; c_yF -= 1; prestaMes = true; }
-
     const resD = c_dF - dI; const resM = c_mF - mI; const resY = c_yF - yI;
-    const totalDias = (resY * 360) + (resM * 30) + resD; const pad = (n) => n.toString().padStart(2, '0');
-
+    const totalDias = (resY * 360) + (resM * 30) + resD;
     let htmlVisual = `Días = (${resY} años × 360) + (${resM} meses × 30) + ${resD} días`;
-
-    res.innerHTML = `
-        <div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in">
-            <h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-calculator"></i> Resta Tradicional (Comercial)</h5>
-            <div class="text-center mt-2 bg-success text-white p-3 rounded shadow-sm"><span class="d-block fw-bold text-uppercase">TOTAL DÍAS COMERCIALES:</span><span class="fs-1 fw-bold">${totalDias}</span></div>
-            ${generarCajaFormula(htmlVisual)}
-        </div>
-    `;
+    res.innerHTML = `<div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in"><h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-calculator"></i> Resta Tradicional (Comercial)</h5><div class="text-center mt-2 bg-success text-white p-3 rounded shadow-sm"><span class="d-block fw-bold text-uppercase">TOTAL DÍAS COMERCIALES:</span><span class="fs-1 fw-bold">${totalDias}</span></div>${generarCajaFormula(htmlVisual)}</div>`;
 }
 
 function procesarFechasExacto() {
     const f1 = document.getElementById('fecha-ini-ex').value; const f2 = document.getElementById('fecha-fin-ex').value; const res = document.getElementById('resultado');
     if (!f1 || !f2) { res.innerHTML = `<div class="alert alert-danger mt-3">Ingrese ambas fechas.</div>`; return; }
-
     const [yI, mI, dI] = f1.split('-').map(Number); const [yF, mF, dF] = f2.split('-').map(Number);
     let dateI = new Date(yI, mI-1, dI); let dateF = new Date(yF, mF-1, dF);
     if(dateF < dateI) { res.innerHTML = `<div class="alert alert-danger mt-3">La fecha final debe ser mayor.</div>`; return; }
-
     const mkI = Object.keys(tablaTiempoExacto.año1)[mI - 1]; const mkF = Object.keys(tablaTiempoExacto.año1)[mF - 1];
     let vI = tablaTiempoExacto.año1[mkI][dI - 1]; let vF_a1 = tablaTiempoExacto.año1[mkF][dF - 1]; let vF_a2 = tablaTiempoExacto.año2[mkF][dF - 1];
     if (vI === undefined || vF_a1 === undefined) { res.innerHTML = `<div class="alert alert-danger mt-3">Fecha inválida.</div>`; return; }
-
     const esBisiesto = (y) => (y % 4 === 0 && (y % 100 !== 0 || y % 400 === 0));
     let countB = 0; let listaB = [];
     for (let y = yI; y <= yF; y++) {
@@ -286,28 +424,11 @@ function procesarFechasExacto() {
             if (feb29 >= iRango && feb29 <= fRango) { countB++; listaB.push(y); }
         }
     }
-
-    let totalDias = 0; let modoReal = yI === yF ? 'mismo' : (yF - yI === 1 ? 'consecutivos' : 'rango');
-    let htmlVisual = "";
-
-    if (modoReal === 'mismo') {
-        let diff = vF_a1 - vI; totalDias = diff + countB;
-        htmlVisual = `Días = ${vF_a1} (Tabla Final) - ${vI} (Tabla Inicial) + ${countB} (Bisiestos)`;
-    } else if (modoReal === 'consecutivos') {
-        let diff = vF_a2 - vI; totalDias = diff + countB;
-        htmlVisual = `Días = ${vF_a2} (Tabla Año 2) - ${vI} (Tabla Inicial) + ${countB} (Bisiestos)`;
-    } else if (modoReal === 'rango') {
-        let yFocal = yF - 1; let aniosEnteros = yFocal - yI; let diasAniosEnteros = aniosEnteros * 365; let diffConsecutivo = vF_a2 - vI; totalDias = diasAniosEnteros + diffConsecutivo + countB;
-        htmlVisual = `Días = (${aniosEnteros} años × 365) + (${vF_a2} - ${vI}) [Tabla Rango] + ${countB} (Bisiestos)`;
-    }
-
-    res.innerHTML = `
-        <div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in">
-            <h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-calendar3"></i> Desglose de Tiempo Exacto</h5>
-            <div class="text-center mt-2 bg-success text-white p-3 rounded shadow-sm"><span class="d-block fw-bold text-uppercase">TOTAL DÍAS EXACTOS:</span><span class="fs-1 fw-bold">${totalDias}</span></div>
-            ${generarCajaFormula(htmlVisual)}
-        </div>
-    `;
+    let totalDias = 0; let modoReal = yI === yF ? 'mismo' : (yF - yI === 1 ? 'consecutivos' : 'rango'); let htmlVisual = "";
+    if (modoReal === 'mismo') { let diff = vF_a1 - vI; totalDias = diff + countB; htmlVisual = `Días = ${vF_a1} (Tabla Final) - ${vI} (Tabla Inicial) + ${countB} (Bisiestos)`; } 
+    else if (modoReal === 'consecutivos') { let diff = vF_a2 - vI; totalDias = diff + countB; htmlVisual = `Días = ${vF_a2} (Tabla Año 2) - ${vI} (Tabla Inicial) + ${countB} (Bisiestos)`; } 
+    else if (modoReal === 'rango') { let yFocal = yF - 1; let aniosEnteros = yFocal - yI; let diasAniosEnteros = aniosEnteros * 365; let diffConsecutivo = vF_a2 - vI; totalDias = diasAniosEnteros + diffConsecutivo + countB; htmlVisual = `Días = (${aniosEnteros} años × 365) + (${vF_a2} - ${vI}) [Tabla Rango] + ${countB} (Bisiestos)`; }
+    res.innerHTML = `<div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in"><h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-calendar3"></i> Desglose de Tiempo Exacto</h5><div class="text-center mt-2 bg-success text-white p-3 rounded shadow-sm"><span class="d-block fw-bold text-uppercase">TOTAL DÍAS EXACTOS:</span><span class="fs-1 fw-bold">${totalDias}</span></div>${generarCajaFormula(htmlVisual)}</div>`;
 }
 
 // ==========================================
@@ -324,7 +445,6 @@ function procesarTiposInteres(tipoCalculo, denominador) {
     if (!f1 || !f2 || P <= 0 || i <= 0) { res.innerHTML = `<div class="alert alert-danger mt-3 fw-bold">Por favor, complete Capital, Tasa y Fechas.</div>`; return; }
 
     const [yI, mI, dI] = f1.split('-').map(Number); const [yF, mF, dF] = f2.split('-').map(Number);
-
     let c_dF = dF, c_mF = mF, c_yF = yF;
     if (c_dF < dI) { c_dF += 30; c_mF -= 1; }
     if (c_mF < mI) { c_mF += 12; c_yF -= 1; }
@@ -337,19 +457,9 @@ function procesarTiposInteres(tipoCalculo, denominador) {
 
     let diasUso = (tipoCalculo === 'Iota' || tipoCalculo === 'Ieta') ? diasAprox : diasExactos;
     let resultadoFinal = P * i * (diasUso / denominador);
-
     let htmlVisual = `I = ${P.toLocaleString('en-US')} × ${i.toFixed(6)} × (${diasUso} / ${denominador})`;
 
-    res.innerHTML = `
-        <div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in">
-            <h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-receipt"></i> Resultado: ${tipoCalculo}</h5>
-            <div class="text-center mt-3 bg-success text-white p-3 rounded shadow-sm">
-                <span class="d-block fw-bold text-uppercase" style="letter-spacing: 1px;">INTERÉS GENERADO</span>
-                <span class="fs-1 fw-bold">$${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</span>
-            </div>
-            ${generarCajaFormula(htmlVisual)}
-        </div>
-    `;
+    res.innerHTML = `<div class="alert alert-success mt-4 text-start border-success border-2 shadow-sm fade-in"><h5 class="fw-bold border-bottom border-success pb-2 text-success"><i class="bi bi-receipt"></i> Resultado: ${tipoCalculo}</h5><div class="text-center mt-3 bg-success text-white p-3 rounded shadow-sm"><span class="d-block fw-bold text-uppercase" style="letter-spacing: 1px;">INTERÉS GENERADO</span><span class="fs-1 fw-bold">$${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}</span></div>${generarCajaFormula(htmlVisual)}</div>`;
 }
 
 // ==========================================
@@ -397,12 +507,89 @@ function procesarCalculoSimple(key) {
     if (isNaN(resultadoFinal) || !isFinite(resultadoFinal)) { res.innerHTML = `<div class="alert alert-danger mt-3 fw-bold">Revise los datos.</div>`; } 
     else { 
         const pref = (esPorcentaje || key === 't' || key === 'ts' || key === 't_despeje') ? "" : "$"; 
-        res.innerHTML = `
-            <div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in">
-                <span class="d-block small text-muted text-uppercase fw-bold">${etiqueta}</span>
-                <span class="fs-3 fw-bold text-dark">${pref}${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}${esPorcentaje?"%":""}</span>
-                ${generarCajaFormula(htmlVisual)}
-            </div>`; 
+        res.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="d-block small text-muted text-uppercase fw-bold">${etiqueta}</span><span class="fs-3 fw-bold text-dark">${pref}${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}${esPorcentaje?"%":""}</span>${generarCajaFormula(htmlVisual)}</div>`; 
+    }
+}
+
+// --- LOGICA UI INTERÉS COMPUESTO ---
+function toggleMetodoFraccionario(fEx, fPr) {
+    const modoRadio = document.querySelector('input[name="metodoFrac"]:checked');
+    if(!modoRadio) return;
+    const modo = modoRadio.value;
+    const titulo = document.getElementById('titulo-formula');
+    const seccionPractico = document.getElementById('seccion-metodo-practico');
+    
+    const inputs = document.querySelectorAll('#sub-formulario input[type="number"], #sub-formulario input[type="date"]');
+    inputs.forEach(inp => inp.value = '');
+    
+    const blockeds = ['dec-j', 'dec-i-manual', 'calc-i', 'dec-i', 'val-n', 'comp-frac-i', 'comp-frac-meses', 'comp-frac-base'];
+    blockeds.forEach(id => { if (document.getElementById(id)) document.getElementById(id).value = ''; });
+
+    document.getElementById('resultado').innerHTML = '';
+    
+    if (modo === 'exacto') { titulo.innerHTML = `Fórmula: ${fEx}`; seccionPractico.classList.add('d-none'); } 
+    else { titulo.innerHTML = `Fórmula: ${fPr}`; seccionPractico.classList.remove('d-none'); }
+    actualizarCompuestoEnVivo(); 
+}
+
+function toggleModoTiempoComp() {
+    const modoRadio = document.querySelector('input[name="modoTiempo"]:checked');
+    if(!modoRadio) return;
+    const modo = modoRadio.value;
+    document.getElementById('ct-fechas').classList.add('d-none'); document.getElementById('ct-anios').classList.add('d-none'); document.getElementById('ct-am').classList.add('d-none');
+    
+    if (modo === 'fechas') document.getElementById('ct-fechas').classList.remove('d-none');
+    if (modo === 'anios') document.getElementById('ct-anios').classList.remove('d-none');
+    if (modo === 'am') document.getElementById('ct-am').classList.remove('d-none');
+    actualizarCompuestoEnVivo();
+}
+
+function actualizarCompuestoEnVivo() {
+    const m = parseFloat(document.getElementById('val-m')?.value) || 1;
+    const jInput = document.getElementById('val-j');
+    let j_dec = 0;
+    if (jInput) {
+        let j_val = parseFloat(jInput.value) || 0;
+        j_dec = j_val / 100;
+        document.getElementById('dec-j').value = j_dec.toFixed(4);
+        let i_calc = j_dec / m;
+        document.getElementById('calc-i').value = (i_calc * 100).toFixed(4) + "%";
+        document.getElementById('dec-i').value = i_calc.toFixed(6);
+    }
+
+    let n = 0; let t = 0;
+    const modoRadio = document.querySelector(`input[name="modoTiempo"]:checked`);
+    if (modoRadio) {
+        const modo = modoRadio.value;
+        if (modo === 'fechas') {
+            const f1 = new Date(document.getElementById('t-f1').value); const f2 = new Date(document.getElementById('t-f2').value);
+            if (!isNaN(f1) && !isNaN(f2) && f2 > f1) {
+                let y = f2.getFullYear() - f1.getFullYear(); let m_diff = f2.getMonth() - f1.getMonth(); let d_diff = f2.getDate() - f1.getDate();
+                if (d_diff < 0) { m_diff--; d_diff += 30; } if (m_diff < 0) { y--; m_diff += 12; }
+                t = y + (m_diff/12) + (d_diff/360); n = t * m;
+            }
+        } else if (modo === 'anios') {
+            t = parseFloat(document.getElementById('t-a1').value) || 0; n = t * m;
+        } else if (modo === 'am') {
+            let a = parseFloat(document.getElementById('t-a2').value) || 0; let mes = parseFloat(document.getElementById('t-m2').value) || 0;
+            t = a + (mes / 12); n = (a * m) + (mes * (m/12));
+        }
+        
+        let hiddenT = document.getElementById('hidden-t-t');
+        if(!hiddenT) { hiddenT = document.createElement('input'); hiddenT.type = 'hidden'; hiddenT.id = 'hidden-t-t'; document.getElementById('sub-formulario').appendChild(hiddenT); }
+        hiddenT.value = t;
+        
+        const resN = document.getElementById('val-n');
+        if (resN) {
+            let modoFrac = document.querySelector('input[name="metodoFrac"]:checked')?.value;
+            if (modoFrac === 'practico') {
+                let n_entero = Math.floor(n); resN.value = n > 0 ? `${n_entero} periodos enteros` : "";
+                let n_frac = n - n_entero; let meses_base = 12 / m;
+                document.getElementById('comp-frac-i').value = document.getElementById('dec-i').value;
+                document.getElementById('comp-frac-base').value = meses_base;
+                document.getElementById('comp-frac-meses').value = Math.round((n_frac * meses_base) * 100) / 100;
+            } else { resN.value = n > 0 ? `${n.toFixed(4)} periodos` : ""; }
+        }
     }
 }
 
@@ -438,7 +625,7 @@ function procesarCalculoCompuesto(key) {
             
         case 'S_frac':
         case 'P_frac':
-            let modoFrac = document.querySelector('input[name="metodoFrac"]:checked').value;
+            let modoFrac = document.querySelector('input[name="metodoFrac"]:checked')?.value || 'exacto';
             if (modoFrac === 'exacto') {
                 resultadoFinal = key === 'S_frac' ? P * Math.pow((1 + i), n) : S * Math.pow((1 + i), -n);
                 etiqueta = key === 'S_frac' ? "Monto Frac. (Exacto)" : "Valor Actual Frac. (Exacto)";
@@ -454,14 +641,7 @@ function procesarCalculoCompuesto(key) {
             }
 
             if (cacheFraccionario.exacto !== null && cacheFraccionario.practico !== null) {
-                res.innerHTML = `
-                    <div class="alert alert-success mt-3 shadow-sm text-start border-success border-2 fade-in">
-                        <h5 class="fw-bold border-bottom pb-2"><i class="bi bi-layout-split"></i> Comparación de Métodos</h5>
-                        <div class="row g-2">
-                            <div class="col-md-6"><div class="p-3 bg-white border border-success rounded"><strong class="text-success d-block mb-1">MÉTODO EXACTO</strong><span class="fs-5 fw-bold text-dark">$${cacheFraccionario.exacto.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div></div>
-                            <div class="col-md-6"><div class="p-3 bg-white border border-info rounded"><strong class="text-info d-block mb-1">MÉTODO PRÁCTICO</strong><span class="fs-5 fw-bold text-dark">$${cacheFraccionario.practico.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div></div>
-                        </div>
-                    </div>`;
+                res.innerHTML = `<div class="alert alert-success mt-3 shadow-sm text-start border-success border-2 fade-in"><h5 class="fw-bold border-bottom pb-2"><i class="bi bi-layout-split"></i> Comparación de Métodos</h5><div class="row g-2"><div class="col-md-6"><div class="p-3 bg-white border border-success rounded"><strong class="text-success d-block mb-1">MÉTODO EXACTO</strong><span class="fs-5 fw-bold text-dark">$${cacheFraccionario.exacto.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div></div><div class="col-md-6"><div class="p-3 bg-white border border-info rounded"><strong class="text-info d-block mb-1">MÉTODO PRÁCTICO</strong><span class="fs-5 fw-bold text-dark">$${cacheFraccionario.practico.toLocaleString('en-US', {minimumFractionDigits: 2})}</span></div></div></div></div>`;
                 return; 
             }
             break;
@@ -470,87 +650,12 @@ function procesarCalculoCompuesto(key) {
     if (isNaN(resultadoFinal) || !isFinite(resultadoFinal)) { res.innerHTML = `<div class="alert alert-danger mt-3 fw-bold">Por favor, revise los datos ingresados.</div>`; } 
     else {
         const suf = esPorcentaje ? "%" : ""; const pref = (esPorcentaje || key === 'n_comp') ? "" : "$";
-        res.innerHTML = `
-            <div class="alert alert-success mt-3 shadow-sm text-center border-success border-2 fade-in">
-                <span class="d-block small text-muted text-uppercase fw-bold">${etiqueta}</span>
-                <span class="fs-3 fw-bold text-dark">${pref}${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}${suf}</span>
-                ${generarCajaFormula(htmlVisual)}
-            </div>`;
+        res.innerHTML = `<div class="alert alert-success mt-3 shadow-sm text-center border-success border-2 fade-in"><span class="d-block small text-muted text-uppercase fw-bold">${etiqueta}</span><span class="fs-3 fw-bold text-dark">${pref}${resultadoFinal.toLocaleString('en-US', {minimumFractionDigits: 2, maximumFractionDigits: 4})}${suf}</span>${generarCajaFormula(htmlVisual)}</div>`;
     }
 }
 
 // --- PAGOS PARCIALES ---
-// ==========================================
-// MÓDULO PAGOS PARCIALES (CORREGIDO)
-// ==========================================
-function generarCamposPagos() { 
-    const c = parseInt(document.getElementById('cantidad-pagos').value); 
-    const cont = document.getElementById('contenedor-pagos-dinamicos'); 
-    let h = ''; 
-    for(let k=1; k<=c; k++) {
-        h+=`<div class="row g-2 mb-2 p-2 bg-white rounded border border-start border-info border-3"><div class="col-12 fw-bold small text-info">Pago ${k}</div><div class="col-6"><input type="number" id="monto-p-${k}" class="form-control form-control-sm" placeholder="Monto $"></div><div class="col-6"><input type="number" id="t-p-${k}" class="form-control form-control-sm" placeholder="Tiempo"></div></div>`; 
-    }
-    cont.innerHTML = h; 
-}
+function generarCamposPagos() { const c = parseInt(document.getElementById('cantidad-pagos').value); const cont = document.getElementById('contenedor-pagos-dinamicos'); let h = ''; for(let k=1; k<=c; k++) h+=`<div class="row g-2 mb-2 p-2 bg-white rounded border border-start border-info border-3"><div class="col-12 fw-bold small text-info">Pago ${k}</div><div class="col-6"><input type="number" id="monto-p-${k}" class="form-control form-control-sm" placeholder="Monto $"></div><div class="col-6"><input type="number" id="t-p-${k}" class="form-control form-control-sm" placeholder="Tiempo"></div></div>`; cont.innerHTML = h; }
+function procesarReglaComercial() { const r = document.getElementById('resultado'); const u = document.getElementById('unidad-pagos').value; const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; const tF = parseFloat(document.getElementById('t-focal').value)||0; const mD = parseFloat(document.getElementById('monto-deuda').value)||0; const tD = parseFloat(document.getElementById('t-deuda').value)||0; const tX = parseFloat(document.getElementById('t-x').value)||0; const mAF = (monto, tiempo) => { let dF = tF - tiempo; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; return dF >= 0 ? monto * (1 + (i * dF)) : monto / (1 + (i * Math.abs(dF))); }; let pE = 0; for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) pE += mAF(parseFloat(document.getElementById(`monto-p-${k}`).value)||0, parseFloat(document.getElementById(`t-p-${k}`).value)||0); const X = (mAF(mD, tD) - pE) / mAF(1, tX); let htmlVisual = `X = [ ${mD} × (1 + ${i.toFixed(4)} × Δt) - (∑Pagos) ] / FactorX`; r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El valor del pago X es:</span><h3 class="mb-0 fw-bold text-dark">$${X.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; }
+function procesarReglaAmericana() { const r = document.getElementById('resultado'); const u = document.getElementById('unidad-pagos-am').value; const i = (parseFloat(document.getElementById('i-pagos-am').value)||0)/100; let s = parseFloat(document.getElementById('monto-deuda-am').value)||0; let tA = parseFloat(document.getElementById('t-ini-am').value)||0; const tF = parseFloat(document.getElementById('t-fin-am').value)||0; let p = []; for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) p.push({ m: parseFloat(document.getElementById(`monto-p-${k}`).value)||0, t: parseFloat(document.getElementById(`t-p-${k}`).value)||0 }); p.sort((a,b)=>a.t-b.t).forEach(x => { if (x.t <= tA || x.t >= tF) return; let dF = x.t - tA; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; s = (s + (s * i * dF)) - x.m; tA = x.t; }); let dF = tF - tA; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; let final = s + (s * i * dF); let htmlVisual = `Liquidación = SaldoAcumulado + (SaldoAcumulado × ${i.toFixed(4)} × Δt_Final)`; r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El Pago Final a liquidar (X) es:</span><h3 class="mb-0 fw-bold text-dark">$${final.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; }
 
-function procesarReglaComercial() { 
-    const r = document.getElementById('resultado'); 
-    const u = document.getElementById('unidad-pagos').value; 
-    const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; 
-    const tF = parseFloat(document.getElementById('t-focal').value)||0; 
-    const mD = parseFloat(document.getElementById('monto-deuda').value)||0; 
-    const tD = parseFloat(document.getElementById('t-deuda').value)||0; 
-    const tX = parseFloat(document.getElementById('t-x').value)||0; 
-    
-    const mAF = (monto, tiempo) => { 
-        let dF = tF - tiempo; 
-        if (u === 'meses') dF /= 12; 
-        if (u === 'dias') dF /= 360; 
-        return dF >= 0 ? monto * (1 + (i * dF)) : monto / (1 + (i * Math.abs(dF))); 
-    }; 
-    
-    let pE = 0; 
-    for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) {
-        pE += mAF(parseFloat(document.getElementById(`monto-p-${k}`).value)||0, parseFloat(document.getElementById(`t-p-${k}`).value)||0); 
-    }
-    
-    const X = (mAF(mD, tD) - pE) / mAF(1, tX); 
-    let htmlVisual = `X = [ ${mD} × (1 + ${i.toFixed(4)} × Δt) - (∑Pagos) ] / FactorX`; 
-    r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El valor del pago X es:</span><h3 class="mb-0 fw-bold text-dark">$${X.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; 
-}
-
-function procesarReglaAmericana() { 
-    const r = document.getElementById('resultado'); 
-    
-    // CORRECCIÓN: Los IDs ahora coinciden exactamente con los generados en el HTML
-    const u = document.getElementById('unidad-pagos').value; 
-    const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; 
-    let s = parseFloat(document.getElementById('monto-deuda').value)||0; 
-    let tA = parseFloat(document.getElementById('t-deuda').value)||0; 
-    const tF = parseFloat(document.getElementById('t-x').value)||0; 
-    
-    let p = []; 
-    for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) {
-        p.push({ 
-            m: parseFloat(document.getElementById(`monto-p-${k}`).value)||0, 
-            t: parseFloat(document.getElementById(`t-p-${k}`).value)||0 
-        }); 
-    }
-    
-    p.sort((a,b)=>a.t-b.t).forEach(x => { 
-        if (x.t <= tA || x.t >= tF) return; 
-        let dF = x.t - tA; 
-        if (u === 'meses') dF /= 12; 
-        if (u === 'dias') dF /= 360; 
-        s = (s + (s * i * dF)) - x.m; 
-        tA = x.t; 
-    }); 
-    
-    let dF = tF - tA; 
-    if (u === 'meses') dF /= 12; 
-    if (u === 'dias') dF /= 360; 
-    let final = s + (s * i * dF); 
-    
-    let htmlVisual = `Liquidación = SaldoAcumulado + (SaldoAcumulado × ${i.toFixed(4)} × Δt_Final)`; 
-    r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El Pago Final a liquidar (X) es:</span><h3 class="mb-0 fw-bold text-dark">$${final.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; 
-}
