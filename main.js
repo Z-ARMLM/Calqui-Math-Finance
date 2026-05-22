@@ -480,7 +480,77 @@ function procesarCalculoCompuesto(key) {
 }
 
 // --- PAGOS PARCIALES ---
-function generarCamposPagos() { const c = parseInt(document.getElementById('cantidad-pagos').value); const cont = document.getElementById('contenedor-pagos-dinamicos'); let h = ''; for(let k=1; k<=c; k++) h+=`<div class="row g-2 mb-2 p-2 bg-white rounded border border-start border-info border-3"><div class="col-12 fw-bold small text-info">Pago ${k}</div><div class="col-6"><input type="number" id="monto-p-${k}" class="form-control form-control-sm" placeholder="Monto $"></div><div class="col-6"><input type="number" id="t-p-${k}" class="form-control form-control-sm" placeholder="Tiempo"></div></div>`; cont.innerHTML = h; }
-function procesarReglaComercial() { const r = document.getElementById('resultado'); const u = document.getElementById('unidad-pagos').value; const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; const tF = parseFloat(document.getElementById('t-focal').value)||0; const mD = parseFloat(document.getElementById('monto-deuda').value)||0; const tD = parseFloat(document.getElementById('t-deuda').value)||0; const tX = parseFloat(document.getElementById('t-x').value)||0; const mAF = (monto, tiempo) => { let dF = tF - tiempo; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; return dF >= 0 ? monto * (1 + (i * dF)) : monto / (1 + (i * Math.abs(dF))); }; let pE = 0; for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) pE += mAF(parseFloat(document.getElementById(`monto-p-${k}`).value)||0, parseFloat(document.getElementById(`t-p-${k}`).value)||0); const X = (mAF(mD, tD) - pE) / mAF(1, tX); let htmlVisual = `X = [ ${mD} × (1 + ${i.toFixed(4)} × Δt) - (∑Pagos) ] / FactorX`; r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El valor del pago X es:</span><h3 class="mb-0 fw-bold text-dark">$${X.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; }
-function procesarReglaAmericana() { const r = document.getElementById('resultado'); const u = document.getElementById('unidad-pagos-am').value; const i = (parseFloat(document.getElementById('i-pagos-am').value)||0)/100; let s = parseFloat(document.getElementById('monto-deuda-am').value)||0; let tA = parseFloat(document.getElementById('t-ini-am').value)||0; const tF = parseFloat(document.getElementById('t-fin-am').value)||0; let p = []; for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) p.push({ m: parseFloat(document.getElementById(`monto-p-${k}`).value)||0, t: parseFloat(document.getElementById(`t-p-${k}`).value)||0 }); p.sort((a,b)=>a.t-b.t).forEach(x => { if (x.t <= tA || x.t >= tF) return; let dF = x.t - tA; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; s = (s + (s * i * dF)) - x.m; tA = x.t; }); let dF = tF - tA; if (u === 'meses') dF /= 12; if (u === 'dias') dF /= 360; let final = s + (s * i * dF); let htmlVisual = `Liquidación = SaldoAcumulado + (SaldoAcumulado × ${i.toFixed(4)} × Δt_Final)`; r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El Pago Final a liquidar (X) es:</span><h3 class="mb-0 fw-bold text-dark">$${final.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; }
+// ==========================================
+// MÓDULO PAGOS PARCIALES (CORREGIDO)
+// ==========================================
+function generarCamposPagos() { 
+    const c = parseInt(document.getElementById('cantidad-pagos').value); 
+    const cont = document.getElementById('contenedor-pagos-dinamicos'); 
+    let h = ''; 
+    for(let k=1; k<=c; k++) {
+        h+=`<div class="row g-2 mb-2 p-2 bg-white rounded border border-start border-info border-3"><div class="col-12 fw-bold small text-info">Pago ${k}</div><div class="col-6"><input type="number" id="monto-p-${k}" class="form-control form-control-sm" placeholder="Monto $"></div><div class="col-6"><input type="number" id="t-p-${k}" class="form-control form-control-sm" placeholder="Tiempo"></div></div>`; 
+    }
+    cont.innerHTML = h; 
+}
 
+function procesarReglaComercial() { 
+    const r = document.getElementById('resultado'); 
+    const u = document.getElementById('unidad-pagos').value; 
+    const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; 
+    const tF = parseFloat(document.getElementById('t-focal').value)||0; 
+    const mD = parseFloat(document.getElementById('monto-deuda').value)||0; 
+    const tD = parseFloat(document.getElementById('t-deuda').value)||0; 
+    const tX = parseFloat(document.getElementById('t-x').value)||0; 
+    
+    const mAF = (monto, tiempo) => { 
+        let dF = tF - tiempo; 
+        if (u === 'meses') dF /= 12; 
+        if (u === 'dias') dF /= 360; 
+        return dF >= 0 ? monto * (1 + (i * dF)) : monto / (1 + (i * Math.abs(dF))); 
+    }; 
+    
+    let pE = 0; 
+    for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) {
+        pE += mAF(parseFloat(document.getElementById(`monto-p-${k}`).value)||0, parseFloat(document.getElementById(`t-p-${k}`).value)||0); 
+    }
+    
+    const X = (mAF(mD, tD) - pE) / mAF(1, tX); 
+    let htmlVisual = `X = [ ${mD} × (1 + ${i.toFixed(4)} × Δt) - (∑Pagos) ] / FactorX`; 
+    r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El valor del pago X es:</span><h3 class="mb-0 fw-bold text-dark">$${X.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; 
+}
+
+function procesarReglaAmericana() { 
+    const r = document.getElementById('resultado'); 
+    
+    // CORRECCIÓN: Los IDs ahora coinciden exactamente con los generados en el HTML
+    const u = document.getElementById('unidad-pagos').value; 
+    const i = (parseFloat(document.getElementById('i-pagos').value)||0)/100; 
+    let s = parseFloat(document.getElementById('monto-deuda').value)||0; 
+    let tA = parseFloat(document.getElementById('t-deuda').value)||0; 
+    const tF = parseFloat(document.getElementById('t-x').value)||0; 
+    
+    let p = []; 
+    for (let k=1; k<=(parseInt(document.getElementById('cantidad-pagos').value)||0); k++) {
+        p.push({ 
+            m: parseFloat(document.getElementById(`monto-p-${k}`).value)||0, 
+            t: parseFloat(document.getElementById(`t-p-${k}`).value)||0 
+        }); 
+    }
+    
+    p.sort((a,b)=>a.t-b.t).forEach(x => { 
+        if (x.t <= tA || x.t >= tF) return; 
+        let dF = x.t - tA; 
+        if (u === 'meses') dF /= 12; 
+        if (u === 'dias') dF /= 360; 
+        s = (s + (s * i * dF)) - x.m; 
+        tA = x.t; 
+    }); 
+    
+    let dF = tF - tA; 
+    if (u === 'meses') dF /= 12; 
+    if (u === 'dias') dF /= 360; 
+    let final = s + (s * i * dF); 
+    
+    let htmlVisual = `Liquidación = SaldoAcumulado + (SaldoAcumulado × ${i.toFixed(4)} × Δt_Final)`; 
+    r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El Pago Final a liquidar (X) es:</span><h3 class="mb-0 fw-bold text-dark">$${final.toLocaleString('en-US', {minimumFractionDigits: 2})}</h3>${generarCajaFormula(htmlVisual)}</div>`; 
+}
