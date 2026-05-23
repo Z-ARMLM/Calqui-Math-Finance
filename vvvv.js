@@ -11,8 +11,9 @@ const generarCajaFormula = (html) => `
         </div>
     </div>`;
 
-// --- GENERADOR DE LÍNEA DE TIEMPO (ROBUSTO) ---
+// --- GENERADOR DE LÍNEA DE TIEMPO  ---
 const generarLineaTiempo = (datos) => {
+  // Verificación de seguridad para evitar el error de toLocaleString
   if (!datos || !datos.deuda || !Array.isArray(datos.pagos)) return "";
 
   let tiempos = [datos.deuda.t, datos.focal.t, ...datos.pagos.map((p) => p.t)];
@@ -75,7 +76,6 @@ const generarLineaTiempo = (datos) => {
         </div>
     `;
 };
-
 const tablaTiempoExacto = {
   año1: {
     ene: Array.from({ length: 31 }, (_, i) => 1 + i),
@@ -1233,22 +1233,22 @@ function procesarReglaComercial() {
   desgloseHtml += `<p class="small mb-1 font-monospace">X = (${deudaObj.valor.toLocaleString("en-US", { minimumFractionDigits: 2 })} - ${pE.toLocaleString("en-US", { minimumFractionDigits: 2 })}) / ${factorXObj.valor.toFixed(6)}</p>`;
   desgloseHtml += `</div>`;
 
+  // Generar línea de tiempo
   let datosLinea = {
     u: u,
     deuda: { monto: mD, t: tD },
     pagos: pagosArr,
-    focal: { t: tF, esIncognita: tF === tX }, 
+    focal: { t: tF, esIncognita: tF === tX }, // Si la focal es igual al tiempo X, resaltarla como incógnita
   };
 
   r.innerHTML = `<div class="alert alert-success mt-3 text-center border-success border-2 shadow-sm fade-in"><span class="text-uppercase small fw-bold text-muted">El valor del pago X es:</span><h3 class="mb-0 fw-bold text-dark">$${X.toLocaleString("en-US", { minimumFractionDigits: 2 })}</h3>${generarCajaFormula(desgloseHtml)}${generarLineaTiempo(datosLinea)}</div>`;
 }
-
 function procesarReglaAmericana() {
   const r = document.getElementById("resultado");
   const u = document.getElementById("unidad-pagos").value;
   const i = (parseFloat(document.getElementById("i-pagos").value) || 0) / 100;
   let s = parseFloat(document.getElementById("monto-deuda").value) || 0;
-  const mD_inicial = s; // Guardamos para la línea de tiempo
+  const mD_inicial = s; 
   let t_ini = parseFloat(document.getElementById("t-deuda").value) || 0;
   const tD_inicial = t_ini;
   const tF = parseFloat(document.getElementById("t-x").value) || 0;
